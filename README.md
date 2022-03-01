@@ -8,7 +8,10 @@ Simple testing client for OAuth2
 
 1. Create a JSON configuration file called "config.json" in the current directory (see below for format)
 2. Run `make`
-4. Run `./test` to begin the test
+3. Run `./test` to run the local testing server
+4. Open up [http://localhost:8000](http://localhost:8000) in your browser
+   * Click the "Login with OAuth" button to start the test
+   * All the other buttons/forms are just placeholders without any functionality.
 
 ## Configuration File Format
 Filename: config.json
