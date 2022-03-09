@@ -8,14 +8,19 @@ import (
 	"context"
 	"log"
 	"encoding/base64"
+	"encoding/json"
 	"crypto/rand"
+	"crypto/tls"
 	"time"
+	"html/template"
+	"bytes"
 )
 
 // Scopes: OAuth 2.0 scopes provide a way to limit the amount of access that is granted to an access token.
 var oauthConfig *oauth2.Config
 var oauthUrlAPI string = "https://www.googleapis.com/oauth2/v2/userinfo?access_token="
 
+var templates *template.Template
 //Populate oauth config from settings
 func generateOauthConfig(S Settings) {
 	oauthConfig = &oauth2.Config{
@@ -30,6 +35,7 @@ func generateOauthConfig(S Settings) {
 		},
 	}
 	oauthUrlAPI = S.UserAPI
+	templates = template.Must(template.ParseFiles("templates/error.html", "templates/success.html"))
 }
 
 func oauthLogin(w http.ResponseWriter, r *http.Request) {
@@ -48,24 +54,42 @@ func oauthLogin(w http.ResponseWriter, r *http.Request) {
 func oauthCallback(w http.ResponseWriter, r *http.Request) {
 	// Read oauthState from Cookie
 	oauthState, _ := r.Cookie("oauthstate")
-
+	var err error
 	if r.FormValue("state") != oauthState.Value {
-		log.Println("invalid oauth state")
-		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-		return
+		err = fmt.Errorf("invalid oauth state")
 	}
-
-	data, err := getUserData(r.FormValue("code"))
+	if err == nil {
+		errstring := r.FormValue("error")
+		errDesc := r.FormValue("error_description")
+		if errstring != "" {
+			err = fmt.Errorf("OauthError: "+ errstring + "\n" + errDesc)
+		}
+	}
+	var data []byte
+	if err == nil {
+		data, err = getUserData(r.FormValue("code"))
+	}
+	fmt.Println("Got Form replies:", r.Form)
 	if err != nil {
 		log.Println(err.Error())
-		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		templates.ExecuteTemplate(w, "error.html", err.Error())
+		//http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
 
 	// GetOrCreate User in your db.
 	// Redirect or response with a token.
-	// More code .....
-	fmt.Fprintf(w, "UserInfo: %s\n", data)
+	//http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+
+	//Simple display of info for testing purposes
+	var js bytes.Buffer
+	errJ := json.Indent(&js, data, "", "  ")
+	if errJ == nil  {
+		templates.ExecuteTemplate(w, "success.html", string(js.Bytes()))
+	}else{
+		templates.ExecuteTemplate(w, "success.html", string(data))
+	}
+
 }
 
 func generateStateOauthCookie(w http.ResponseWriter) string {
@@ -82,12 +106,17 @@ func generateStateOauthCookie(w http.ResponseWriter) string {
 
 func getUserData(code string) ([]byte, error) {
 	// Use code to get token and get user info from Google.
-
-	token, err := oauthConfig.Exchange(context.Background(), code)
+ 	tr := &http.Transport{
+        TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+    }
+    sslcli := &http.Client{Transport: tr}
+    ctx := context.TODO()
+    ctx = context.WithValue(ctx, oauth2.HTTPClient, sslcli)
+	token, err := oauthConfig.Exchange(ctx, code)
 	if err != nil {
 		return nil, fmt.Errorf("code exchange wrong: %s", err.Error())
 	}
-	response, err := http.Get( fmt.Sprintf(oauthUrlAPI, token.AccessToken) )
+	response, err := sslcli.Get( fmt.Sprintf(oauthUrlAPI, token.AccessToken) )
 	if err != nil {
 		return nil, fmt.Errorf("failed getting user info: %s", err.Error())
 	}
