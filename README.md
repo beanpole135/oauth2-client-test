@@ -30,6 +30,8 @@ Example File:
 }
 ```
 
+***NOTE:*** When setting up the client access within the oauth provider, ensure that "http://localhost:8000/auth/callback" is enabled as a valid oauth callback for the oauth routines.
+
 ### Summary of configuration fields
 
 * **client_id** (string)
