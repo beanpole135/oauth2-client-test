@@ -1,5 +1,5 @@
 # oauth2-client-test
-Simple testing client for OAuth2
+Simple testing client for OAuth2 service providers
 
 ## Requirements
 * go version 1.17+
@@ -11,7 +11,8 @@ Simple testing client for OAuth2
 3. Run `./test` to run the local testing server
 4. Open up [http://localhost:8000](http://localhost:8000) in your browser
    * Click the "Login with OAuth" button to start the test
-   * All the other buttons/forms are just placeholders without any functionality.
+   * Success/Error pages will print out the full info provided by the server
+   * Quick ability to return to login page to re-test the processs as many times as needed.
 
 ## Configuration File Format
 Filename: config.json
@@ -22,7 +23,7 @@ Example File:
 {
 	"client_id": "client_id_from_provider",
 	"client_secret": "client_secret_from_provider",
-	"scopes": ["https://www.googleapis.com/auth/userinfo.email"],
+	"scopes": ["email","address"],
 	"endpoint_auth_url": "https://[oauth-provider-endpoint-authentication]",
 	"endpoint_token_url": "https://[oauth-provider-endpoint-tokens]",
 	"user_api_url": "https://www.googleapis.com/oauth2/v2/userinfo?access_token=%s"
@@ -36,7 +37,7 @@ Example File:
 * **client_secret** (string)
   * Unique token/password given by the provider when you setup OAuth access
 * **scopes** (array of strings)
-  * Some providers allow for custom permissions, this lets to setup the list of access scopes requested.
+  * Some providers allow for custom permissions, this lets you setup the list of access scopes requested.
   * Leave empty otherwise ([])
 * **endpoint_auth_url** (string)
   * URL for the endpoint of the provider which begins authentication
